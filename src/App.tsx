@@ -1,8 +1,10 @@
 import { useGame } from './context/GameContext'
 import Flag from './components/Flag'
+import ScoreBoard from './components/ScoreBoard'
+import GuessForm from './components/GuessForm' 
 
 function App() {
-  const { loading, error, nextCountry } = useGame()
+  const { loading, error } = useGame()
 
   if (loading) return <p>Cargando países...</p>
   if (error) return <p>Ups, algo falló: {error}</p>
@@ -10,9 +12,9 @@ function App() {
   return (
     <main>
       <h1>Adiviná la bandera</h1>
+      <ScoreBoard /> 
       <Flag />
-      {/* 👉 TEMPORAL: botón solo para probar que el azar funciona. Lo borramos en el paso 3 */}
-      <button onClick={nextCountry}>Siguiente (temporal)</button>
+      <GuessForm /> 
     </main>
   )
 }

@@ -20,6 +20,14 @@ const pickRandom = (list: Country[], exclude?: Country | null): Country => {
   return options[Math.floor(Math.random() * options.length)]
 }
 
+const normalize = (text: string): string =>
+  text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+
+
 // 👉 Todo lo que el Context le va a exponer a los componentes.
 // Por ahora solo los países y el estado de la carga; lo vamos ampliando por pasos.
 interface GameContextType {
@@ -28,6 +36,9 @@ interface GameContextType {
   error: string | null
   currentCountry: Country | null 
   nextCountry: () => void 
+  score: number 
+  guess: (answer: string) => boolean // 👉 NUEVO: recibe lo que escribió el jugador y devuelve true si acertó
+  resetScore: () => void
 }
 
 // 👉 Creamos el Context. Arranca en null y el hook useGame (abajo) valida que exista el Provider.
@@ -42,6 +53,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   // Para mostrar un mensaje si el fetch falla
   const [error, setError] = useState<string | null>(null)
   const [currentCountry, setCurrentCountry] = useState<Country | null>(null)
+  const [score, setScore] = useState(0)
 
   // 👉 Se ejecuta UNA vez al montar la app (por el array de dependencias vacío [])
   useEffect(() => {
@@ -88,9 +100,33 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setCurrentCountry(pickRandom(countries, currentCountry))
   }
 
+    // 👉 NUEVO: lógica de adivinar
+  const guess = (answer: string): boolean => {
+    // Si no hay país actual o el jugador no escribió nada, no hacemos nada
+    if (!currentCountry || answer.trim() === '') return false
+
+    // Comparamos las dos cosas ya normalizadas
+    const isCorrect = normalize(answer) === normalize(currentCountry.name)
+
+    if (isCorrect) {
+      // Acierto: +10 puntos y pasamos a otro país
+      // Usamos la forma (prev => ...) para asegurarnos de partir siempre del valor más reciente
+      setScore((prev) => prev + 10)
+      nextCountry()
+    } else {
+      // Fallo: -1 punto (el país NO cambia, el jugador puede reintentar)
+      setScore((prev) => prev - 1)
+    }
+
+    return isCorrect
+  }
+
+  // 👉 NUEVO: reinicia el puntaje
+  const resetScore = () => setScore(0)
+
   return (
     // 👉 "value" es lo que van a poder leer los componentes con useGame()
-    <GameContext.Provider value={{ countries, loading, error, currentCountry, nextCountry }}>
+    <GameContext.Provider value={{ countries, loading, error, currentCountry, nextCountry, score, guess, resetScore }}>
       {children}
     </GameContext.Provider>
   )
