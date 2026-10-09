@@ -9,6 +9,20 @@ export interface Country {
   iso3: string
 }
 
+
+export interface LeaderboardEntry {
+  id: number 
+  name: string
+  score: number
+  date: string
+}
+
+const GAME_DURATION = 30
+const HINT_COST = 2
+const LEADERBOARD_SIZE = 10
+const STORAGE_KEY = 'flag-game-leaderboard'
+
+
 // 👉 NUEVO: función auxiliar que devuelve un país al azar de una lista.
 // Vive FUERA del componente porque no depende de ningún estado (no necesita recrearse en cada render).
 // Si le pasamos "exclude", evita devolver ese mismo país (para no repetir bandera seguida).
@@ -28,6 +42,21 @@ const normalize = (text: string): string =>
     .trim()
 
 
+// 👉 NUEVO: cuenta cuántas LETRAS tiene un texto (ignora espacios, guiones, apóstrofes, etc.)
+// \p{L} es "cualquier letra de cualquier idioma" (por eso va con la bandera u)
+const countLetters = (text: string): number =>
+  text.split('').filter((char) => /\p{L}/u.test(char)).length
+
+const loadLeaderboard = (): LeaderboardEntry[] => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+
 // 👉 Todo lo que el Context le va a exponer a los componentes.
 // Por ahora solo los países y el estado de la carga; lo vamos ampliando por pasos.
 interface GameContextType {
@@ -39,6 +68,19 @@ interface GameContextType {
   score: number 
   guess: (answer: string) => boolean // 👉 NUEVO: recibe lo que escribió el jugador y devuelve true si acertó
   resetScore: () => void
+  timeLeft: number 
+  isGameOver: boolean 
+  restartGame: () => void 
+  playerName: string
+  gameStarted: boolean
+  startGame: (name: string) => void
+  changePlayer: () => void
+  hintsUsed: number
+  maxHints: number
+  hintCost: number
+  requestHint: () => void
+  leaderboard: LeaderboardEntry[]
+  clearLeaderboard: () => void
 }
 
 // 👉 Creamos el Context. Arranca en null y el hook useGame (abajo) valida que exista el Provider.
@@ -54,6 +96,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [currentCountry, setCurrentCountry] = useState<Country | null>(null)
   const [score, setScore] = useState(0)
+  const [timeLeft, setTimeLeft] = useState(GAME_DURATION)
+  const [playerName, setPlayerName] = useState('')
+  const [gameStarted, setGameStarted] = useState(false)
+  const [hintsUsed, setHintsUsed] = useState(0)
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(loadLeaderboard)
+
+  const isGameOver = timeLeft === 0
+
+  const maxHints = currentCountry
+  ? Math.max(0, countLetters(currentCountry.name) - 1)
+  : 0
 
   // 👉 Se ejecuta UNA vez al montar la app (por el array de dependencias vacío [])
   useEffect(() => {
@@ -92,41 +145,115 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+ // 👉 NUEVO: efecto de la cuenta regresiva
+  useEffect(() => {
+    // No corremos el reloj si todavía está cargando, si hubo error o si el juego ya terminó
+    if (!gameStarted || loading || error || isGameOver) return
+
+    // setInterval ejecuta la función cada 1000 ms (1 segundo)
+    const intervalId = setInterval(() => {
+      setTimeLeft((prev) => prev - 1)
+    }, 1000)
+
+    return () => clearInterval(intervalId)
+  }, [gameStarted, loading, error, isGameOver])
+  // 👆 Cuando isGameOver pasa a true, el efecto se re-ejecuta: corre el cleanup (frena el reloj)
+  // y el "return" de arriba evita crear uno nuevo.
+
+  useEffect(() => {
+    if (!isGameOver || score === 0) return
+
+    setLeaderboard((prev) =>
+      [
+        ...prev,
+        {
+          id: Date.now(),
+          name: playerName,
+          score,
+          date: new Date().toLocaleDateString('es-AR'),
+        },
+      ]
+        .sort((a, b) => b.score - a.score) 
+        .slice(0, LEADERBOARD_SIZE) 
+    )
+  }, [isGameOver, score, playerName])
+
+
+useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(leaderboard))
+    } catch {
+      // Si falla (modo privado, storage lleno), el juego sigue andando sin guardar
+    }
+  }, [leaderboard])
+
+
+
+
 // 👉 NUEVO: elige un país nuevo al azar, distinto del actual.
   // Después la vamos a llamar cuando el jugador acierte.
   const nextCountry = () => {
     // Si todavía no hay países cargados, no hacemos nada
     if (countries.length === 0) return
     setCurrentCountry(pickRandom(countries, currentCountry))
+    setHintsUsed(0)
   }
 
     // 👉 NUEVO: lógica de adivinar
   const guess = (answer: string): boolean => {
-    // Si no hay país actual o el jugador no escribió nada, no hacemos nada
+    if (isGameOver) return false
     if (!currentCountry || answer.trim() === '') return false
 
-    // Comparamos las dos cosas ya normalizadas
     const isCorrect = normalize(answer) === normalize(currentCountry.name)
 
     if (isCorrect) {
-      // Acierto: +10 puntos y pasamos a otro país
-      // Usamos la forma (prev => ...) para asegurarnos de partir siempre del valor más reciente
+
       setScore((prev) => prev + 10)
       nextCountry()
     } else {
-      // Fallo: -1 punto (el país NO cambia, el jugador puede reintentar)
-      setScore((prev) => prev - 1)
+      setScore((prev) => Math.max(0, prev - 1))
     }
 
     return isCorrect
   }
 
-  // 👉 NUEVO: reinicia el puntaje
   const resetScore = () => setScore(0)
 
+  const requestHint = () => {
+    // No se puede si terminó el juego, si no hay país, o si ya se reveló el máximo
+    if (isGameOver || !currentCountry || hintsUsed >= maxHints) return
+
+    setHintsUsed((prev) => prev + 1)
+    setScore((prev) => Math.max(0, prev - HINT_COST)) 
+  }
+
+  const restartGame = () => {
+    resetScore()
+    setTimeLeft(GAME_DURATION)
+    setHintsUsed(0)
+    if (countries.length > 0) {
+      setCurrentCountry(pickRandom(countries, currentCountry))
+    }
+  }
+  
+  // 👉 NUEVO: arranca una partida para un jugador
+  const startGame = (name: string) => {
+    const cleanName = name.trim()
+    if (cleanName === '') return
+
+    setPlayerName(cleanName)
+    restartGame()
+    setGameStarted(true)
+  }
+
+  const changePlayer = () => setGameStarted(false)
+
+  const clearLeaderboard = () => setLeaderboard([])
+
+  
   return (
     // 👉 "value" es lo que van a poder leer los componentes con useGame()
-    <GameContext.Provider value={{ countries, loading, error, currentCountry, nextCountry, score, guess, resetScore }}>
+    <GameContext.Provider value={{ countries, loading, error, currentCountry, nextCountry, score, guess, resetScore, timeLeft, isGameOver, restartGame, playerName, gameStarted, startGame, changePlayer, hintsUsed, maxHints, hintCost: HINT_COST, requestHint, leaderboard, clearLeaderboard }}>
       {children}
     </GameContext.Provider>
   )

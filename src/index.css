@@ -1,0 +1,549 @@
+/* src/index.css */
+
+/* 👉 Tipografías de Google Fonts. @import tiene que ir siempre primero en el archivo */
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap');
+
+/* ============================================================
+   TOKENS: colores, fuentes y medidas en un solo lugar.
+   Si querés cambiar el look del juego, tocá solo esto.
+   ============================================================ */
+:root {
+  --cobalt: #1f2fbf; /* fondo principal */
+  --cobalt-deep: #17239a; /* fondo de la bandera mientras carga */
+  --chalk: #f5f6fa; /* texto y superficies claras */
+  --ink: #0b1033; /* texto sobre superficies claras */
+  --yellow: #ffc93c; /* acciones principales */
+  --yellow-edge: #b88a0f; /* "canto" inferior del amarillo (da relieve) */
+  --coral: #ff6b5e; /* error y tiempo bajo */
+  --mint: #2fd08c; /* acierto */
+
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-body: 'Instrument Sans', system-ui, sans-serif;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+/* 👉 Con border-box el padding no agranda los elementos: más fácil calcular tamaños */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh; /* dvh = alto real en celulares (descuenta la barra del navegador) */
+  background: var(--cobalt);
+  color: var(--chalk);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 👉 Anillo de foco visible para quien navega con teclado */
+:focus-visible {
+  outline: 3px solid var(--yellow);
+  outline-offset: 3px;
+}
+
+/* Contenedor central de toda la app */
+.app {
+  width: min(100%, 760px);
+  margin-inline: auto;
+  padding: 28px 20px 64px;
+}
+
+/* Mensajes de "Cargando" y de error */
+.status {
+  margin: 24vh 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+.status--error {
+  color: var(--coral);
+}
+
+/* ============================================================
+   BOTONES (un estilo base + variantes)
+   ============================================================ */
+.btn {
+  height: 58px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 999px;
+  font: 600 1rem var(--font-body);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Principal: amarillo con "canto" abajo, como una tecla física */
+.btn--primary {
+  background: var(--yellow);
+  color: var(--ink);
+  box-shadow: 0 4px 0 var(--yellow-edge);
+}
+.btn--primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--yellow-edge);
+}
+/* Al apretar, la tecla "se hunde" */
+.btn--primary:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 var(--yellow-edge);
+}
+.btn--primary:disabled {
+  box-shadow: none;
+}
+
+/* Secundario: solo contorno */
+.btn--ghost {
+  background: transparent;
+  color: var(--chalk);
+  box-shadow: inset 0 0 0 2px rgba(245, 246, 250, 0.6);
+}
+.btn--ghost:hover:not(:disabled) {
+  background: rgba(245, 246, 250, 0.12);
+}
+
+/* Tamaño chico (para el botón de pista) */
+.btn--small {
+  height: 44px;
+  padding: 0 20px;
+  font-size: 0.95rem;
+}
+
+/* Acción discreta: parece un link */
+.btn--text {
+  height: auto;
+  padding: 4px 0;
+  background: none;
+  color: rgba(245, 246, 250, 0.8);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.btn--text:hover {
+  color: var(--chalk);
+}
+
+/* ============================================================
+   PANTALLA DE INICIO
+   ============================================================ */
+.hero {
+  padding: 40px 0 48px;
+}
+.hero__title {
+  margin: 0 0 20px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(3.2rem, 13vw, 6.5rem); /* clamp = mínimo, ideal, máximo */
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+}
+.hero__lead {
+  max-width: 34ch; /* líneas cortas = más fácil de leer */
+  margin: 0 0 32px;
+  font-size: 1.15rem;
+  color: rgba(245, 246, 250, 0.85);
+}
+
+/* Campo de texto (se reutiliza en el nombre y en la adivinanza) */
+.field {
+  flex: 1;
+  min-width: 0; /* permite que el input se achique dentro de un flex */
+  height: 58px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--chalk);
+  color: var(--ink);
+  font: 500 1.1rem var(--font-body);
+}
+.field::placeholder {
+  color: rgba(11, 16, 51, 0.6);
+}
+
+.setup {
+  display: flex;
+  gap: 12px;
+}
+
+/* ============================================================
+   PANTALLA DE JUEGO: barra superior
+   ============================================================ */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.wordmark {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+}
+.player {
+  padding: 6px 16px;
+  border: 2px solid rgba(245, 246, 250, 0.5);
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+/* ============================================================
+   TIEMPO Y PUNTAJE (los dos números grandes)
+   ============================================================ */
+.hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+.stat--end {
+  align-items: flex-end;
+  text-align: right;
+}
+.stat__value {
+  min-width: 2ch; /* evita que el layout "salte" cuando el número pasa de 2 a 1 dígito */
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(3.5rem, 14vw, 6rem);
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.stat__label {
+  margin-top: 6px;
+  font-size: 0.95rem;
+  color: rgba(245, 246, 250, 0.8);
+}
+.stat--end .btn--text {
+  margin-top: 8px;
+  font-size: 0.85rem;
+}
+
+/* 👉 Últimos 10 segundos: el número se pone coral y late */
+.stat--low .stat__value {
+  color: var(--coral);
+  transform-origin: left bottom;
+  animation: tick 1s ease-in-out infinite;
+}
+@keyframes tick {
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+/* ============================================================
+   LA BANDERA (el momento memorable del juego)
+   ============================================================ */
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 12px 0 32px;
+}
+
+/* El mástil: una barra con una perilla en cada punta */
+.pole {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 560px);
+  height: 14px;
+  border-radius: 999px;
+  background: var(--yellow);
+  box-shadow: 0 4px 0 var(--yellow-edge);
+}
+.pole::before,
+.pole::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--yellow);
+  box-shadow: 0 3px 0 var(--yellow-edge);
+  transform: translateY(-50%);
+}
+.pole::before {
+  left: -8px;
+}
+.pole::after {
+  right: -8px;
+}
+
+/* La tela: cuelga del mástil y se "despliega" hacia abajo */
+.flag {
+  position: relative;
+  min-width: 200px;
+  min-height: 170px;
+  margin-top: -2px;
+  background: var(--cobalt-deep); /* se ve mientras carga la imagen */
+  border-radius: 0 0 6px 6px;
+  overflow: hidden;
+  line-height: 0; /* saca el espacio fantasma que deja una imagen inline */
+  box-shadow: 0 16px 32px rgba(11, 16, 51, 0.45);
+  transform-origin: top center; /* se despliega desde arriba, donde cuelga */
+  animation: unfurl 0.75s cubic-bezier(0.2, 0.8, 0.3, 1.15) both;
+}
+.flag__img {
+  display: block;
+  height: clamp(170px, 32vh, 270px);
+  width: auto;
+  max-width: min(86vw, 480px);
+  object-fit: contain;
+}
+/* 👉 Capa de "pliegues": franjas muy suaves de luz y sombra encima de la imagen */
+.flag::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* no bloquea clicks */
+  background: linear-gradient(
+    90deg,
+    rgba(11, 16, 51, 0.18) 0%,
+    rgba(255, 255, 255, 0.12) 18%,
+    rgba(11, 16, 51, 0.14) 36%,
+    rgba(255, 255, 255, 0.1) 54%,
+    rgba(11, 16, 51, 0.14) 72%,
+    rgba(255, 255, 255, 0.08) 90%,
+    rgba(11, 16, 51, 0.16) 100%
+  );
+}
+@keyframes unfurl {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/* ============================================================
+   PISTAS: las letras aparecen como fichas
+   ============================================================ */
+.hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+.hint__tiles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  min-height: 56px; /* reserva el alto para que nada salte al aparecer la primera ficha */
+}
+.hint__empty {
+  margin: 0;
+  color: rgba(245, 246, 250, 0.75);
+}
+.tile {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 52px;
+  border-radius: 10px;
+  background: var(--chalk);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.6rem;
+  box-shadow: 0 3px 0 rgba(11, 16, 51, 0.35);
+  animation: pop 0.28s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+/* Los espacios del nombre (ej: "Costa Rica") son un hueco, no una ficha */
+.tile--space {
+  width: 16px;
+  background: none;
+  box-shadow: none;
+  animation: none;
+}
+@keyframes pop {
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ============================================================
+   FORMULARIO DE ADIVINAR + FEEDBACK
+   ============================================================ */
+.guess__row {
+  display: flex;
+  gap: 12px;
+}
+.feedback-slot {
+  min-height: 56px; /* reserva el espacio del mensaje para que no empuje nada */
+  margin-top: 16px;
+}
+.feedback {
+  display: inline-block;
+  margin: 0;
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-weight: 600;
+  animation: pop 0.3s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.feedback--correct {
+  background: var(--mint);
+  color: var(--ink);
+}
+/* El error además "tiembla" (esta regla va después, así pisa la animación de arriba) */
+.feedback--wrong {
+  background: var(--coral);
+  color: var(--ink);
+  animation: shake 0.4s both;
+}
+@keyframes shake {
+  20% {
+    transform: translateX(-8px);
+  }
+  40% {
+    transform: translateX(7px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+/* ============================================================
+   FIN DE LA PARTIDA
+   ============================================================ */
+.over {
+  padding: 12px 0 0;
+}
+.over__title {
+  margin: 0 0 20px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2.5rem, 10vw, 4.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+}
+.over__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 48px;
+}
+
+/* ============================================================
+   LEADERBOARD
+   ============================================================ */
+.board__title {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.8rem;
+  letter-spacing: -0.02em;
+}
+.board__empty {
+  margin: 0;
+  color: rgba(245, 246, 250, 0.75);
+}
+.board__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.board__table th {
+  padding: 8px;
+  border-bottom: 2px solid rgba(245, 246, 250, 0.5);
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: rgba(245, 246, 250, 0.7);
+}
+.board__table td {
+  padding: 14px 8px;
+  border-bottom: 1px solid rgba(245, 246, 250, 0.18);
+}
+.board__table .num {
+  text-align: right;
+}
+.board__table .score {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.4rem;
+}
+.board__actions {
+  margin-top: 16px;
+}
+
+/* Círculo con la posición. Los 3 primeros tienen color propio */
+.rank {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-weight: 600;
+}
+.rank--1 {
+  background: var(--yellow);
+  color: var(--ink);
+}
+.rank--2 {
+  background: var(--chalk);
+  color: var(--ink);
+}
+.rank--3 {
+  background: var(--coral);
+  color: var(--ink);
+}
+
+/* ============================================================
+   CELULAR
+   ============================================================ */
+@media (max-width: 560px) {
+  /* Input y botón se apilan y el botón ocupa todo el ancho */
+  .setup,
+  .guess__row {
+    flex-direction: column;
+  }
+  .setup .btn,
+  .guess__row .btn {
+    width: 100%;
+  }
+  /* En pantallas angostas la fecha del ranking se oculta para que entre todo */
+  .col-date {
+    display: none;
+  }
+}
+
+/* ============================================================
+   ACCESIBILIDAD: si la persona pidió menos movimiento en su sistema, apagamos las animaciones
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
