@@ -3,7 +3,7 @@ import { useGame } from '../context/GameContext'
 export default function Timer() {
   const { timeLeft } = useGame()
 
-  const isLow = timeLeft <= 10
+  const isLow = timeLeft <= 5
 
   return (
     <div className={isLow ? 'stat stat--low' : 'stat'} role="timer">

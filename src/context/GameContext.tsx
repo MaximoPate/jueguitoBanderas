@@ -17,8 +17,9 @@ export interface LeaderboardEntry {
   date: string
 }
 
-const GAME_DURATION = 30
+const TIME_PER_FLAG = 15
 const HINT_COST = 2
+const HINT_TIME_COST = 2
 const LEADERBOARD_SIZE = 10
 const STORAGE_KEY = 'flag-game-leaderboard'
 
@@ -78,6 +79,7 @@ interface GameContextType {
   hintsUsed: number
   maxHints: number
   hintCost: number
+  hintTimeCost: number
   requestHint: () => void
   leaderboard: LeaderboardEntry[]
   clearLeaderboard: () => void
@@ -96,7 +98,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [currentCountry, setCurrentCountry] = useState<Country | null>(null)
   const [score, setScore] = useState(0)
-  const [timeLeft, setTimeLeft] = useState(GAME_DURATION)
+  const [timeLeft, setTimeLeft] = useState(TIME_PER_FLAG)
   const [playerName, setPlayerName] = useState('')
   const [gameStarted, setGameStarted] = useState(false)
   const [hintsUsed, setHintsUsed] = useState(0)
@@ -156,9 +158,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }, 1000)
 
     return () => clearInterval(intervalId)
-  }, [gameStarted, loading, error, isGameOver])
-  // 👆 Cuando isGameOver pasa a true, el efecto se re-ejecuta: corre el cleanup (frena el reloj)
-  // y el "return" de arriba evita crear uno nuevo.
+  }, [gameStarted, loading, error, isGameOver, currentCountry]) 
+
 
   useEffect(() => {
     if (!isGameOver || score === 0) return
@@ -187,16 +188,11 @@ useEffect(() => {
     }
   }, [leaderboard])
 
-
-
-
-// 👉 NUEVO: elige un país nuevo al azar, distinto del actual.
-  // Después la vamos a llamar cuando el jugador acierte.
   const nextCountry = () => {
-    // Si todavía no hay países cargados, no hacemos nada
     if (countries.length === 0) return
     setCurrentCountry(pickRandom(countries, currentCountry))
     setHintsUsed(0)
+    setTimeLeft(TIME_PER_FLAG)
   }
 
     // 👉 NUEVO: lógica de adivinar
@@ -220,16 +216,16 @@ useEffect(() => {
   const resetScore = () => setScore(0)
 
   const requestHint = () => {
-    // No se puede si terminó el juego, si no hay país, o si ya se reveló el máximo
     if (isGameOver || !currentCountry || hintsUsed >= maxHints) return
+    if (timeLeft <= HINT_TIME_COST) return
 
     setHintsUsed((prev) => prev + 1)
-    setScore((prev) => Math.max(0, prev - HINT_COST)) 
+    setTimeLeft((prev) => Math.max(0, prev - HINT_TIME_COST))
   }
 
   const restartGame = () => {
     resetScore()
-    setTimeLeft(GAME_DURATION)
+    setTimeLeft(TIME_PER_FLAG)
     setHintsUsed(0)
     if (countries.length > 0) {
       setCurrentCountry(pickRandom(countries, currentCountry))
@@ -253,7 +249,7 @@ useEffect(() => {
   
   return (
     // 👉 "value" es lo que van a poder leer los componentes con useGame()
-    <GameContext.Provider value={{ countries, loading, error, currentCountry, nextCountry, score, guess, resetScore, timeLeft, isGameOver, restartGame, playerName, gameStarted, startGame, changePlayer, hintsUsed, maxHints, hintCost: HINT_COST, requestHint, leaderboard, clearLeaderboard }}>
+    <GameContext.Provider value={{ countries, loading, error, currentCountry, nextCountry, score, guess, resetScore, timeLeft, isGameOver, restartGame, playerName, gameStarted, startGame, changePlayer, hintsUsed, maxHints, hintCost: HINT_COST, hintTimeCost: HINT_TIME_COST, requestHint, leaderboard, clearLeaderboard }}>
       {children}
     </GameContext.Provider>
   )

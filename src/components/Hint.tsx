@@ -1,7 +1,7 @@
 import { useGame } from '../context/GameContext'
 
 export default function Hint() {
-  const { currentCountry, hintsUsed, maxHints, hintCost, requestHint } = useGame()
+  const { currentCountry, hintsUsed, maxHints, hintCost, hintTimeCost, timeLeft, requestHint } = useGame()
 
   if (!currentCountry) return null
 
@@ -37,10 +37,10 @@ export default function Hint() {
       <button
         className="btn btn--ghost btn--small"
         onClick={requestHint}
-        disabled={hintsUsed >= maxHints}
-      >
-        Pedir pista (-{hintCost})
-      </button>
+        disabled={hintsUsed >= maxHints || timeLeft <= hintTimeCost}
+        >
+        Pedir pista (-{hintCost} puntos)
+        </button>
     </div>
   )
 }
