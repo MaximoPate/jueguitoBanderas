@@ -1,14 +1,12 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react' 
 
-// 👉 Forma de cada país tal como lo devuelve la API (dentro de "data")
 export interface Country {
   name: string
-  flag: string // URL de la imagen de la bandera
+  flag: string
   iso2: string
   iso3: string
 }
-
 
 export interface LeaderboardEntry {
   id: number 
@@ -23,15 +21,9 @@ const HINT_TIME_COST = 2
 const LEADERBOARD_SIZE = 10
 const STORAGE_KEY = 'flag-game-leaderboard'
 
-
-// 👉 NUEVO: función auxiliar que devuelve un país al azar de una lista.
-// Vive FUERA del componente porque no depende de ningún estado (no necesita recrearse en cada render).
-// Si le pasamos "exclude", evita devolver ese mismo país (para no repetir bandera seguida).
+//"exclude" evita devolver ese mismo país (para no repetir bandera seguida).
 const pickRandom = (list: Country[], exclude?: Country | null): Country => {
-  // Si hay que excluir uno, lo sacamos de la lista de opciones
   const options = exclude ? list.filter((c) => c.name !== exclude.name) : list
-  // Math.random() da un decimal entre 0 y 1; lo multiplicamos por el largo de la lista
-  // y Math.floor lo redondea hacia abajo para obtener un índice válido
   return options[Math.floor(Math.random() * options.length)]
 }
 
@@ -43,8 +35,7 @@ const normalize = (text: string): string =>
     .trim()
 
 
-// 👉 NUEVO: cuenta cuántas LETRAS tiene un texto (ignora espacios, guiones, apóstrofes, etc.)
-// \p{L} es "cualquier letra de cualquier idioma" (por eso va con la bandera u)
+//cuenta cuántas LETRAS tiene un texto (ignora espacios, guiones, apóstrofes, etc.)
 const countLetters = (text: string): number =>
   text.split('').filter((char) => /\p{L}/u.test(char)).length
 
@@ -85,16 +76,12 @@ interface GameContextType {
   clearLeaderboard: () => void
 }
 
-// 👉 Creamos el Context. Arranca en null y el hook useGame (abajo) valida que exista el Provider.
+//Creamos el Context. Arranca en null y el hook useGame (abajo) valida que exista el Provider.
 const GameContext = createContext<GameContextType | null>(null)
 
-// 👉 Provider: guarda el estado y lo comparte con toda la app
 export function GameProvider({ children }: { children: ReactNode }) {
-  // Lista completa de países que trae la API
   const [countries, setCountries] = useState<Country[]>([])
-  // Para mostrar "Cargando..." mientras llega la respuesta
   const [loading, setLoading] = useState(true)
-  // Para mostrar un mensaje si el fetch falla
   const [error, setError] = useState<string | null>(null)
   const [currentCountry, setCurrentCountry] = useState<Country | null>(null)
   const [score, setScore] = useState(0)
